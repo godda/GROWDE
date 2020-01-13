@@ -1,0 +1,149 @@
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <script type="text/javascript" src="jquery.min.js"></script>
+  
+  <script src="js/bootstrap.js" ></script>
+  <link href="css/bootstrap4-toggle.min.css" rel="stylesheet">
+  <script src="js/bootstrap4-toggle.min.js"></script>
+
+  <link rel="stylesheet" href="css/bootstrap.css" >
+  <script type="text/javascript" src="mqtt.min.js"></script>
+  <script type="text/javascript" src="raphael-2.1.4.min.js"></script>
+  <script type="text/javascript" src="justgage.js"></script>
+  <script type="text/javascript" src="jquery.min.js"></script>
+  <style>
+  body {
+    text-align: center;
+  }
+
+  #gauge1 {
+   width:400px; height:320px;
+   display: inline-block;
+   margin: 1em;
+ }
+ #gauge2 {
+  width:400px; height:320px;
+  display: inline-block;
+  margin: 1em;
+}
+
+
+</style>
+</head>
+<body>
+
+
+
+  <div id="gauge1" ></div>
+  <div id="gauge2"  ></div>
+  <div class="row">
+
+    <div class="col-md">
+
+      <ul class="list-group list-group-flush">
+
+
+
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <input id="pump1"  type="checkbox" data-toggle="toggle" data-height="50" data-width="150" onchange ="press(1)">
+          <span class="align-items-right"><h4>ปั้มน้ำ</h4></span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <input  id="pump2"  type="checkbox" data-toggle="toggle" data-height="50" data-width="150" onchange ="press(2)">
+          <span class="align-items-right"><h4>ปั้มพ่นหมอก</h4></span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div id="lb">[สถานะ]</div>
+
+        </li>
+      </ul>
+    </div>
+  </div>
+  <script>
+    var g1,g2;
+    var p1,p2;
+    p1  = $('#pump1');
+
+    var client  = mqtt.connect('wss://iot.pwa.co.th/ws',{
+      port: 443
+    });
+
+    client.on('connect', function () {
+      client.subscribe('growde/temp');
+      client.subscribe('growde/humid');
+      client.subscribe('growde/pump1');
+      client.subscribe('growde/pump2');
+      client.publish('growde/debug', 'growde001');
+      document.getElementById("lb").innerHTML = 'เชื่อต่อแล้ว';
+      update_guage();
+    })
+
+    client.on('message', function (topic, message) {
+  // message is Buffer
+  console.log(topic.toString()+' > '+message.toString());
+
+
+
+  //g.refresh(getRandomInt(350, 980));
+  if(topic=="growde/temp"){
+   g1.refresh(message.toString());
+
+ }else if(topic=="growde/humid"){
+   g2.refresh(message.toString());
+ }else if(topic=="growde/pump1"){
+  if(message.toString()=="1"){
+    //$('#pump1').bootstrapToggle('on');
+  }else if(message.toString()=="0"){
+    //$('#pump1').bootstrapToggle('off');
+  }
+}else if(topic=="growde/pump2"){
+  if(message.toString()=="1"){
+   //p1.bootstrapToggle('on', false);
+  }else if(message.toString()=="0"){
+    //p1.bootstrapToggle('off', false);
+ }
+}
+
+
+document.getElementById("lb").innerHTML = message.toString();
+  //client.end()
+})
+    function press(pump){
+      console.log(document.getElementById('pump'+pump).checked);
+      var val = document.getElementById('pump'+pump).checked;
+      if(val){
+        client.publish('growde/pump'+pump, '1');
+      }else{
+        client.publish('growde/pump'+pump, '0');
+      }
+    }
+    function update_guage(){
+
+     g1 = new JustGage({
+      id: "gauge1",
+      value: 99,
+      min: 0,
+      max: 100,
+      title: "อุณหภูมิ",
+      label: "*c",
+      relativeGaugeSize: true
+
+    });
+
+     g2 = new JustGage({
+      id: "gauge2",
+      value: 99,
+      min: 0,
+      max: 100,
+      title: "ความชื้น",
+      label: "%",
+      relativeGaugeSize: true
+    });
+
+   }
+ </script>
+</body>
+
+</html>
